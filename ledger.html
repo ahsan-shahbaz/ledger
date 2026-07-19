@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F3D2E">
+<title>Ledger — Monthly Budget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#0F3D2E;
+  --cream:#F7F3E8;
+  --brass:#C9A227;
+  --ink:#1A1A1A;
+  --stamp:#8A2E2E;
+  --pencil:#6B6B5E;
+  --rule:rgba(15,61,46,.10);
+  --line:rgba(15,61,46,.22);
+  --serif:"Fraunces",Georgia,serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+  --sans:"Inter",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:#0A241B;
+  font-family:var(--sans);
+  color:var(--ink);
+  -webkit-text-size-adjust:100%;
+}
+button,input,select{font-family:inherit;font-size:16px;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+/* ---------- shell ---------- */
+#app{
+  max-width:480px;margin:0 auto;min-height:100vh;
+  background:var(--cream);
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--rule) 31px,var(--rule) 32px);
+  box-shadow:0 0 60px rgba(0,0,0,.5);
+  padding-bottom:96px;position:relative;
+}
+header{
+  background:var(--green);color:var(--cream);
+  padding:16px 18px 14px;
+  display:flex;align-items:center;gap:12px;
+  border-bottom:3px double var(--brass);
+  position:sticky;top:0;z-index:20;
+}
+header h1{
+  font-family:var(--serif);font-weight:700;font-size:21px;margin:0;
+  letter-spacing:.5px;flex:1;line-height:1.1;
+}
+header .sub{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--brass);font-weight:500;margin-top:3px}
+.icon-btn{
+  background:rgba(247,243,232,.10);border:1px solid rgba(201,162,39,.5);
+  color:var(--cream);border-radius:8px;padding:7px 10px;font-size:14px;line-height:1;
+}
+#saveState{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--brass);
+  text-transform:uppercase;min-width:46px;text-align:right}
+#saveState.err{color:#F0B4B4}
+
+main{padding:18px 14px 8px}
+
+/* ---------- cards ---------- */
+.card{
+  background:#FFFDF7;border:1px solid var(--line);border-radius:10px;
+  padding:15px 15px 16px;margin-bottom:14px;
+  box-shadow:0 1px 0 rgba(15,61,46,.06);
+}
+.card h2{
+  font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 2px;
+}
+.card .hint{font-size:11.5px;color:var(--pencil);margin:0 0 12px;line-height:1.45}
+.eyebrow{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--pencil);margin:0 0 8px;font-weight:500;
+}
+
+/* ---------- hero ---------- */
+.hero{
+  background:var(--green);color:var(--cream);border:none;
+  border-radius:10px;padding:20px 18px;position:relative;overflow:hidden;
+}
+.hero:after{content:"";position:absolute;inset:6px;border:1px solid rgba(201,162,39,.35);
+  border-radius:6px;pointer-events:none}
+.hero .eyebrow{color:var(--brass);margin-bottom:6px}
+.hero .big{
+  font-family:var(--mono);font-weight:700;font-size:33px;letter-spacing:-.5px;
+  line-height:1.05;word-break:break-all;
+}
+.hero .big.neg{color:#F2A9A9}
+.hero .note{font-size:11.5px;color:rgba(247,243,232,.72);margin-top:8px}
+
+/* ---------- rows / fields ---------- */
+.field{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dotted var(--line)}
+.field:last-child{border-bottom:none}
+.field label{flex:1;font-size:13.5px;font-weight:500}
+.field .sm{display:block;font-size:11px;color:var(--pencil);font-weight:400;margin-top:2px}
+input.money,input.txt,input.dt,input.pct{
+  border:1px solid var(--line);background:#FFFDF7;border-radius:7px;
+  padding:8px 9px;min-width:0;
+}
+input.money,input.pct{font-family:var(--mono);text-align:right;width:118px;flex:none}
+input.pct{width:74px}
+input.dt{font-family:var(--mono);font-size:13px;width:145px;flex:none}
+input.txt{flex:1;font-size:14px}
+input:disabled{background:rgba(15,61,46,.05);color:var(--pencil)}
+
+.total-row{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  margin-top:12px;padding-top:11px;border-top:2px solid var(--green);
+}
+.total-row .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--green);font-weight:700}
+.total-row .val{font-family:var(--mono);font-size:19px;font-weight:700}
+.val.neg{color:var(--stamp)}
+
+.line{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:13.5px;
+  border-bottom:1px dotted var(--line)}
+.line:last-of-type{border-bottom:none}
+.line .n{color:var(--ink)}
+.line .v{font-family:var(--mono);font-size:13.5px;white-space:nowrap}
+.line .v.muted{color:var(--pencil)}
+
+.list-row{display:flex;align-items:center;gap:8px;padding:6px 0}
+.list-row input.txt{font-size:13.5px;padding:8px}
+.list-row input.money{width:104px;font-size:13.5px}
+.del{
+  background:none;border:1px solid var(--line);color:var(--stamp);
+  border-radius:6px;width:30px;height:34px;font-size:17px;line-height:1;flex:none;
+}
+.del:hover{background:rgba(138,46,46,.08)}
+
+.btn{
+  display:block;width:100%;margin-top:12px;padding:11px;border-radius:8px;
+  border:1px dashed var(--green);background:transparent;color:var(--green);
+  font-weight:600;font-size:13.5px;
+}
+.btn:hover{background:rgba(15,61,46,.05)}
+.btn.solid{border:1px solid var(--green);background:var(--green);color:var(--cream)}
+
+.empty{font-size:12.5px;color:var(--pencil);font-style:italic;padding:12px 0;text-align:center}
+
+/* ---------- month nav ---------- */
+.monthnav{
+  display:flex;align-items:center;gap:8px;margin-bottom:14px;
+  background:var(--green);border-radius:9px;padding:7px 8px;color:var(--cream);
+}
+.monthnav button{
+  background:rgba(247,243,232,.10);border:1px solid rgba(201,162,39,.45);color:var(--cream);
+  border-radius:6px;padding:6px 11px;font-size:15px;line-height:1;
+}
+.monthnav .m{flex:1;text-align:center;font-family:var(--mono);font-weight:700;font-size:14px;letter-spacing:.06em}
+.monthnav .today{font-size:11px;padding:7px 9px;font-weight:600}
+
+/* ---------- kameeti ---------- */
+.k-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.badge{
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  padding:4px 7px;border-radius:4px;font-weight:700;flex:none;
+}
+.badge.active{background:rgba(201,162,39,.20);color:#7A6212;border:1px solid var(--brass)}
+.badge.done{background:rgba(15,61,46,.12);color:var(--green);border:1px solid var(--line)}
+.bar{height:9px;background:rgba(15,61,46,.10);border-radius:5px;overflow:hidden;margin:10px 0 6px}
+.bar i{display:block;height:100%;background:var(--brass)}
+.k-stats{display:flex;gap:6px;margin:10px 0 4px}
+.k-stat{flex:1;background:rgba(15,61,46,.045);border-radius:7px;padding:8px 6px;text-align:center}
+.k-stat b{display:block;font-family:var(--mono);font-size:14px;font-weight:700}
+.k-stat b.rem{color:var(--stamp)}
+.k-stat span{font-size:9.5px;color:var(--pencil);letter-spacing:.05em;text-transform:uppercase}
+
+/* ---------- table ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--pencil);text-align:left;padding:0 0 7px;border-bottom:1px solid var(--line);font-weight:500;
+}
+th.r,td.r{text-align:right}
+td{padding:8px 0;border-bottom:1px dotted var(--line);font-family:var(--mono);font-size:12.5px}
+tr.now td{background:rgba(201,162,39,.13);font-weight:700}
+td.neg{color:var(--stamp)}
+.est{color:var(--pencil);font-size:9px;letter-spacing:.08em}
+
+/* ---------- nav ---------- */
+nav{
+  position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;
+  background:var(--green);border-top:3px double var(--brass);
+  display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:30;
+}
+nav button{
+  flex:1;background:none;border:none;color:rgba(247,243,232,.6);
+  padding:7px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:8px;
+}
+nav button .ic{font-size:15px;line-height:1}
+nav button .tx{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+nav button.on{color:var(--brass);background:rgba(247,243,232,.07)}
+
+/* ---------- lock ---------- */
+#lock{
+  position:fixed;inset:0;z-index:100;background:var(--green);color:var(--cream);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px;text-align:center;
+}
+#lock .seal{
+  width:66px;height:66px;border:2px solid var(--brass);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:27px;margin-bottom:18px;
+}
+#lock h2{font-family:var(--serif);font-size:26px;margin:0 0 6px}
+#lock p{font-size:12.5px;color:rgba(247,243,232,.7);max-width:300px;margin:0 0 22px;line-height:1.55}
+#lock input{
+  width:min(280px,100%);text-align:center;font-family:var(--mono);letter-spacing:.2em;
+  padding:13px;border-radius:8px;border:1px solid rgba(201,162,39,.5);
+  background:rgba(247,243,232,.07);color:var(--cream);
+}
+#lock input::placeholder{letter-spacing:.1em;color:rgba(247,243,232,.35)}
+#lock button{
+  margin-top:12px;width:min(280px,100%);padding:13px;border-radius:8px;border:none;
+  background:var(--brass);color:#1A1A1A;font-weight:700;font-size:15px;
+}
+#lockErr{color:#F2A9A9;font-size:12.5px;min-height:18px;margin-top:10px}
+.fine{font-size:10.5px;color:var(--pencil);line-height:1.5;margin-top:10px}
+@media (prefers-reduced-motion:no-preference){
+  main{animation:fade .22s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div class="seal">🔒</div>
+  <h2>Ledger</h2>
+  <p>Screen lock. Enter the passphrase to open your passbook.</p>
+  <input id="pw" type="password" placeholder="passphrase" autocomplete="off" inputmode="text">
+  <button id="unlock">Unlock</button>
+  <div id="lockErr"></div>
+  <p style="margin-top:26px;font-size:10.5px;max-width:300px">
+    This is a soft screen lock, not security. The passphrase sits in this page's JavaScript,
+    so anyone who views the source can read or skip it. It only stops a casual glance at your phone.
+  </p>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <h1>Ledger<span class="sub">Passbook · PKR</span></h1>
+    <span id="saveState"></span>
+    <button class="icon-btn" id="relock" title="Lock screen">🔒</button>
+  </header>
+  <main id="view"></main>
+  <input type="file" id="fileIn" accept="application/json,.json" hidden>
+  <nav id="nav">
+    <button data-tab="overview" class="on"><span class="ic">◈</span><span class="tx">Overview</span></button>
+    <button data-tab="kameeti"><span class="ic">◎</span><span class="tx">Kameeti</span></button>
+    <button data-tab="expenses"><span class="ic">≡</span><span class="tx">Expenses</span></button>
+    <button data-tab="housing"><span class="ic">⌂</span><span class="tx">Housing</span></button>
+    <button data-tab="report"><span class="ic">▤</span><span class="tx">Report</span></button>
+  </nav>
+</div>
+
+<script>
+"use strict";
+(function(){
+
+/* =====================================================================
+   1. UTILITIES
+   ===================================================================== */
+const PASSWORD = "nasha-mana";
+const STORE_KEY = "ledger-state-v1";
+
+/** Sanitize anything into a finite number. Never returns NaN. */
+function num(v){
+  if(typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if(v === null || v === undefined) return 0;
+  const cleaned = String(v).replace(/[^0-9.\-]/g, "");
+  const parts = cleaned.split(".");
+  const norm = parts.length > 2 ? parts[0] + "." + parts.slice(1).join("") : cleaned;
+  const n = parseFloat(norm);
+  return Number.isFinite(n) ? n : 0;
+}
+function fmt(n){
+  const v = Math.round(num(n));
+  return (v < 0 ? "-Rs " : "Rs ") + Math.abs(v).toLocaleString("en-PK");
+}
+function esc(s){
+  return String(s === null || s === undefined ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+const MONTH_NAMES = ["January","February","March","April","May","June",
+                     "July","August","September","October","November","December"];
+
+/** "YYYY-MM-DD" -> Date (local, no timezone drift). Returns null if invalid. */
+function parseDate(s){
+  if(!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+  if(!m) return null;
+  const d = new Date(+m[1], +m[2]-1, +m[3]);
+  return isNaN(d.getTime()) ? null : d;
+}
+function keyOf(d){
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+}
+function keyToParts(k){
+  const m = /^(\d{4})-(\d{2})$/.exec(String(k||""));
+  return m ? {y:+m[1], m:+m[2]} : {y:new Date().getFullYear(), m:new Date().getMonth()+1};
+}
+function keyLabel(k){
+  const p = keyToParts(k);
+  return MONTH_NAMES[p.m-1] + " " + p.y;
+}
+function keyShort(k){
+  const p = keyToParts(k);
+  return MONTH_NAMES[p.m-1].slice(0,3) + " " + String(p.y).slice(2);
+}
+function shiftKey(k, delta){
+  const p = keyToParts(k);
+  let total = p.y*12 + (p.m-1) + delta;
+  if(total < 0) total = 0;
+  return Math.floor(total/12) + "-" + String(total%12 + 1).padStart(2,"0");
+}
+/** Whole calendar months from a to b (day-of-month aware). */
+function monthsBetween(a, b){
+  if(!a || !b) return 0;
+  let n = (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth());
+  if(b.getDate() < a.getDate()) n -= 1;
+  return n;
+}
+function clamp(n, lo, hi){ return Math.max(lo, Math.min(hi, n)); }
+function uid(p){ return p + Math.random().toString(36).slice(2,8) + Date.now().toString(36).slice(-3); }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+const todayKey = () => keyOf(new Date());
+
+/* =====================================================================
+   2. STATE + PERSISTENCE (debounced · mutex · retried)
+   ===================================================================== */
+const DEFAULT_EXPENSES = [
+  {name:"Groceries",            amount:50000},
+  {name:"Transport & fuel",     amount:20000},
+  {name:"Mobile & internet",    amount:8000},
+  {name:"School fees",          amount:35000},
+  {name:"Household help",       amount:15000},
+  {name:"Medical",              amount:8000},
+  {name:"Eating out",           amount:12000}
+];
+const DEFAULT_UTILITIES = [
+  {name:"Electricity", amount:18000},
+  {name:"Gas",         amount:4000},
+  {name:"Water",       amount:1500},
+  {name:"Maintenance", amount:3000},
+  {name:"Misc",        amount:2000}
+];
+
+function blankState(){
+  const cur = todayKey();
+  return {
+    meta: { anchor: cur, version: 1 },
+    salary: { gross: 541500, tax: 105280 },
+    housing: {
+      rent: {
+        base: 100000,
+        startDate: "2026-09-01",
+        increasePct: 10,
+        firstPartial: 50000,
+        firstPartialDate: "2026-08-15"
+      }
+    },
+    kameeti: [
+      { id: uid("k"), name:"20k Kameeti", monthly:20000, start:"2024-12-01",
+        end:"2027-02-01", status:"Payout already taken (1st turn)" }
+    ],
+    months: {
+      [cur]: {
+        expenses: DEFAULT_EXPENSES.map(e => ({id:uid("e"), name:e.name, amount:e.amount})),
+        utilities: DEFAULT_UTILITIES.map(u => ({id:uid("u"), name:u.name, amount:u.amount}))
+      }
+    }
+  };
+}
+
+/** Repair anything missing/corrupt so the app can never boot into a broken state. */
+function normalize(s){
+  const d = blankState();
+  if(!s || typeof s !== "object") return d;
+  const out = {};
+  out.meta = Object.assign({}, d.meta, s.meta || {});
+  out.salary = {
+    gross: num((s.salary||{}).gross),
+    tax:   num((s.salary||{}).tax)
+  };
+  const r = ((s.housing||{}).rent) || {};
+  out.housing = { rent: {
+    base: num(r.base),
+    startDate: r.startDate || "",
+    increasePct: num(r.increasePct),
+    firstPartial: num(r.firstPartial),
+    firstPartialDate: r.firstPartialDate || ""
+  }};
+  out.kameeti = Array.isArray(s.kameeti) ? s.kameeti.map(k => ({
+    id: k && k.id ? String(k.id) : uid("k"),
+    name: k && k.name ? String(k.name) : "Untitled committee",
+    monthly: num(k && k.monthly),
+    start: (k && k.start) || "",
+    end: (k && k.end) || "",
+    status: (k && k.status) ? String(k.status) : ""
+  })) : [];
+  out.months = {};
+  const src = (s.months && typeof s.months === "object") ? s.months : {};
+  Object.keys(src).forEach(k => {
+    if(!/^\d{4}-\d{2}$/.test(k)) return;
+    const rec = src[k] || {};
+    out.months[k] = {
+      expenses:  cleanList(rec.expenses,  "e"),
+      utilities: cleanList(rec.utilities, "u")
+    };
+  });
+  if(!Object.keys(out.months).length) out.months = d.months;
+  if(!/^\d{4}-\d{2}$/.test(out.meta.anchor)) out.meta.anchor = todayKey();
+  return out;
+}
+function cleanList(arr, prefix){
+  if(!Array.isArray(arr)) return [];
+  return arr.map(x => ({
+    id: x && x.id ? String(x.id) : uid(prefix),
+    name: x && typeof x.name === "string" ? x.name : "",
+    amount: num(x && x.amount)
+  }));
+}
+
+/* --- storage adapter: platform window.storage if present, else localStorage --- */
+const hasPlatform = typeof window.storage === "object" && window.storage &&
+                    typeof window.storage.set === "function";
+async function storeWrite(key, value){
+  if(hasPlatform){ return await window.storage.set(key, value, false); }
+  localStorage.setItem(key, value);           // throws on quota / private mode
+  return true;
+}
+async function storeRead(key){
+  if(hasPlatform){
+    try{ const r = await window.storage.get(key, false); return r ? r.value : null; }
+    catch(e){ return null; }
+  }
+  return localStorage.getItem(key);
+}
+
+let saveTimer = null, saveInFlight = false, savePending = false;
+const saveBadge = () => document.getElementById("saveState");
+
+function markSaving(text, isErr){
+  const el = saveBadge();
+  if(!el) return;
+  el.textContent = text;
+  el.classList.toggle("err", !!isErr);
+}
+function scheduleSave(){
+  markSaving("…", false);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(runSave, 500);
+}
+async function runSave(){
+  if(saveInFlight){ savePending = true; return; }   // mutex: queue exactly one follow-up
+  saveInFlight = true;
+  state.meta.updatedAt = new Date().toISOString();
+  const payload = JSON.stringify(state);
+  let ok = false, lastErr = null;
+  for(let attempt = 0; attempt < 3; attempt++){
+    try{ await storeWrite(STORE_KEY, payload); ok = true; break; }
+    catch(err){ lastErr = err; await sleep(120 * (attempt + 1)); }
+  }
+  saveInFlight = false;
+  markSaving(ok ? "saved" : "not saved", !ok);
+  writeHandle();
+  if(ok) pushGist(true);
+  if(!ok) console.error("Ledger: save failed after 3 attempts", lastErr);
+  if(savePending){ savePending = false; runSave(); }
+}
+
+let state = blankState();
+
+/* =====================================================================
+   3. DERIVED CALCULATIONS
+   ===================================================================== */
+const netSalary = () => num(state.salary.gross) - num(state.salary.tax);
+
+/** Ensure a month record exists; clone the most recent earlier month if absent. */
+function monthRecord(key, create){
+  if(state.months[key]) return state.months[key];
+  if(!create) return null;
+  const earlier = Object.keys(state.months).filter(k => k < key).sort();
+  const src = earlier.length ? state.months[earlier[earlier.length-1]] : null;
+  const copy = list => (list || []).map(x => ({id:uid("c"), name:x.name, amount:num(x.amount)}));
+  state.months[key] = src
+    ? { expenses: copy(src.expenses), utilities: copy(src.utilities) }
+    : { expenses:  DEFAULT_EXPENSES.map(e => ({id:uid("e"), name:e.name, amount:e.amount})),
+        utilities: DEFAULT_UTILITIES.map(u => ({id:uid("u"), name:u.name, amount:u.amount})) };
+  scheduleSave();
+  return state.months[key];
+}
+/** Read-only view of a month, falling back to the nearest earlier record. */
+function monthView(key){
+  if(state.months[key]) return { rec: state.months[key], estimated:false };
+  const earlier = Object.keys(state.months).filter(k => k < key).sort();
+  if(earlier.length) return { rec: state.months[earlier[earlier.length-1]], estimated:true };
+  return { rec: {expenses:[], utilities:[]}, estimated:true };
+}
+const sumList = l => (l||[]).reduce((t,x) => t + num(x.amount), 0);
+
+/** Rent due in a given YYYY-MM. */
+function rentForMonth(key){
+  const r = state.housing.rent;
+  const start = parseDate(r.startDate);
+  const partial = parseDate(r.firstPartialDate);
+  const startKey = start ? keyOf(start) : null;
+  const partialKey = partial ? keyOf(partial) : null;
+  if(partialKey && key === partialKey && (!startKey || partialKey < startKey)) return num(r.firstPartial);
+  if(startKey && key >= startKey){
+    const p = keyToParts(key);
+    const elapsed = (p.y - start.getFullYear())*12 + (p.m - 1 - start.getMonth());
+    const years = Math.max(0, Math.floor(elapsed/12));
+    return num(r.base) * Math.pow(1 + num(r.increasePct)/100, years);
+  }
+  return 0;
+}
+
+/** Live stats for one committee, from today's date. */
+function kameetiStats(k){
+  const start = parseDate(k.start), end = parseDate(k.end);
+  const total = (start && end) ? Math.max(0, monthsBetween(start, end)) : 0;
+  const elapsedRaw = start ? monthsBetween(start, new Date()) : 0;
+  const paid = clamp(elapsedRaw, 0, total);
+  const remaining = Math.max(0, total - paid);
+  return {
+    total, paid, remaining,
+    remainingAmount: remaining * num(k.monthly),
+    paidAmount: paid * num(k.monthly),
+    active: remaining > 0 && total > 0,
+    pct: total > 0 ? Math.round(paid/total*100) : 0,
+    startKey: start ? keyOf(start) : null,
+    endKey: end ? keyOf(end) : null
+  };
+}
+/** Total kameeti payable in a given month. */
+function kameetiForMonth(key){
+  return state.kameeti.reduce((t,k) => {
+    const s = kameetiStats(k);
+    if(s.startKey && s.endKey && key >= s.startKey && key < s.endKey) return t + num(k.monthly);
+    return t;
+  }, 0);
+}
+/** Full month summary used by Overview and Report. */
+function monthSummary(key, useFallback){
+  const v = useFallback ? monthView(key) : {rec: state.months[key] || {expenses:[],utilities:[]}, estimated:false};
+  const expenses  = sumList(v.rec.expenses);
+  const utilities = sumList(v.rec.utilities);
+  const rent      = rentForMonth(key);
+  const kameeti   = kameetiForMonth(key);
+  const income    = netSalary();
+  return { key, income, expenses, utilities, rent, kameeti,
+           outflow: expenses+utilities+rent+kameeti,
+           leftover: income - (expenses+utilities+rent+kameeti),
+           estimated: v.estimated };
+}
+
+/* =====================================================================
+   4. VIEW ROUTER
+   ===================================================================== */
+let tab = "overview";
+let expMonth = todayKey();     // month shown on the Expenses tab
+let utilMonth = todayKey();    // month shown on the Housing tab
+const view = () => document.getElementById("view");
+
+function render(){
+  const v = view();
+  v.innerHTML = ({
+    overview: viewOverview,
+    kameeti:  viewKameeti,
+    expenses: viewExpenses,
+    housing:  viewHousing,
+    report:   viewReport
+  })[tab]();
+  v.scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+function go(next){
+  tab = next;
+  document.querySelectorAll("#nav button").forEach(b =>
+    b.classList.toggle("on", b.dataset.tab === next));
+  render();
+}
+
+/* ---------- Overview ---------- */
+function viewOverview(){
+  const k = todayKey();
+  const s = monthSummary(k, true);
+  return `
+  <div class="card hero">
+    <p class="eyebrow">Leftover · ${esc(keyLabel(k))}</p>
+    <div class="big ${s.leftover < 0 ? "neg" : ""}">${esc(fmt(s.leftover))}</div>
+    <p class="note">Net take-home minus expenses, rent, utilities and kameeti for this month.</p>
+  </div>
+
+  <div class="card">
+    <h2>Salary</h2>
+    <p class="hint">Your fixed monthly figures. Tax is subtracted from gross.</p>
+    <div class="field">
+      <label for="f-gross">Gross salary</label>
+      <input class="money" id="f-gross" data-set="salary.gross" inputmode="decimal" value="${num(state.salary.gross)}">
+    </div>
+    <div class="field">
+      <label for="f-tax">Income tax</label>
+      <input class="money" id="f-tax" data-set="salary.tax" inputmode="decimal" value="${num(state.salary.tax)}">
+    </div>
+    <div class="total-row">
+      <span class="lbl">Net take-home</span>
+      <span class="val" id="netOut">${esc(fmt(netSalary()))}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Where it goes</h2>
+    <p class="hint">Calculated from the other tabs${s.estimated ? " — expenses and utilities are carried over from your last recorded month." : "."}</p>
+    <div class="line"><span class="n">Expenses</span><span class="v">${esc(fmt(s.expenses))}</span></div>
+    <div class="line"><span class="n">House rent</span><span class="v">${esc(fmt(s.rent))}</span></div>
+    <div class="line"><span class="n">Utility &amp; other bills</span><span class="v">${esc(fmt(s.utilities))}</span></div>
+    <div class="line"><span class="n">Kameeti</span><span class="v">${esc(fmt(s.kameeti))}</span></div>
+    <div class="total-row">
+      <span class="lbl">Total outflow</span>
+      <span class="val">${esc(fmt(s.outflow))}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">Backup</p>
+    <h2>Your master JSON file</h2>
+    <p class="hint">Everything — every month, committee and setting — lives in one JSON object.
+      It's kept in this browser's storage, which clearing browsing data will erase.
+      Download a copy to Google Drive now and then.</p>
+    <div class="line"><span class="n">Months recorded</span><span class="v">${Object.keys(state.months).length}</span></div>
+    <div class="line"><span class="n">Last download</span>
+      <span class="v ${state.meta.lastExport ? "" : "muted"}">${esc(state.meta.lastExport || "never")}</span></div>
+    <button class="btn solid" id="doExport">Download ledger.json</button>
+    <button class="btn" id="doImport">Restore from a file</button>
+    ${window.showSaveFilePicker ? `<button class="btn" id="doLink">Keep a JSON file in sync (desktop)</button>` : ""}
+    <p class="fine">Restoring replaces everything currently in the app.</p>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">GitHub sync</p>
+    <h2>Sync to a gist</h2>
+    <p class="hint">Point this at a secret gist containing a <b>ledger.json</b> file and every
+      change is written there too, so the same data follows you to any device.</p>
+    <div class="field" style="display:block">
+      <label for="s-gist" style="display:block;margin-bottom:6px">Gist ID
+        <span class="sm">The long code at the end of the gist's URL</span></label>
+      <input class="txt" id="s-gist" style="width:100%" autocomplete="off"
+             spellcheck="false" value="${esc(sync.gistId)}" placeholder="a1b2c3d4e5f6…">
+    </div>
+    <div class="field" style="display:block">
+      <label for="s-token" style="display:block;margin-bottom:6px">Access token
+        <span class="sm">Classic token with only the gist scope</span></label>
+      <input class="txt" id="s-token" type="password" style="width:100%" autocomplete="off"
+             spellcheck="false" value="${esc(sync.token)}" placeholder="ghp_…">
+    </div>
+    <button class="btn solid" id="doPush">Save settings and push</button>
+    <button class="btn" id="doPull">Pull from GitHub</button>
+    <p class="fine" id="syncMsg">${syncReady() ? "Syncing on every change." : "Not connected yet."}</p>
+    <p class="fine">The token is stored only in this browser and is never included in a
+      downloaded ledger.json. Give it the gist scope and nothing else, set an expiry,
+      and revoke it on GitHub if you lose the phone.</p>
+  </div>`;
+}
+
+/* ---------- Kameeti ---------- */
+function viewKameeti(){
+  const cards = state.kameeti.map(k => {
+    const s = kameetiStats(k);
+    return `
+    <div class="card" data-kid="${esc(k.id)}">
+      <div class="k-head">
+        <input class="txt" data-kfield="name" value="${esc(k.name)}" aria-label="Committee name">
+        <span class="badge ${s.active ? "active" : "done"}">${s.active ? "Active" : "Complete"}</span>
+        <button class="del" data-kdel="${esc(k.id)}" aria-label="Delete committee">×</button>
+      </div>
+      <div class="bar"><i style="width:${s.pct}%"></i></div>
+      <p class="eyebrow" style="margin:0">${s.paid} of ${s.total} months · ${s.pct}%</p>
+      <div class="k-stats">
+        <div class="k-stat"><b>${s.paid}</b><span>Paid</span></div>
+        <div class="k-stat"><b>${s.remaining}</b><span>Left</span></div>
+        <div class="k-stat"><b class="rem">${esc(fmt(s.remainingAmount))}</b><span>Remaining</span></div>
+      </div>
+      <div class="field">
+        <label for="km-${esc(k.id)}">Monthly amount</label>
+        <input class="money" id="km-${esc(k.id)}" data-kfield="monthly" inputmode="decimal" value="${num(k.monthly)}">
+      </div>
+      <div class="field">
+        <label for="ks-${esc(k.id)}">Starts</label>
+        <input class="dt" id="ks-${esc(k.id)}" type="date" data-kfield="start" value="${esc(k.start)}">
+      </div>
+      <div class="field">
+        <label for="ke-${esc(k.id)}">Ends</label>
+        <input class="dt" id="ke-${esc(k.id)}" type="date" data-kfield="end" value="${esc(k.end)}">
+      </div>
+      <div class="field" style="display:block">
+        <label for="kn-${esc(k.id)}" style="display:block;margin-bottom:6px">Note
+          <span class="sm">Turn taken, payout month, who runs it…</span></label>
+        <input class="txt" id="kn-${esc(k.id)}" data-kfield="status" value="${esc(k.status)}" style="width:100%">
+      </div>
+    </div>`;
+  }).join("");
+
+  const totalMonthly = state.kameeti.reduce((t,k) => {
+    const s = kameetiStats(k);
+    return s.active ? t + num(k.monthly) : t;
+  }, 0);
+
+  return `
+  <div class="card">
+    <p class="eyebrow">Rotating savings</p>
+    <h2>Kameeti committees</h2>
+    <p class="hint">Progress recalculates from today's date. Only active committees count toward your monthly outflow.</p>
+    <div class="total-row" style="margin-top:4px">
+      <span class="lbl">Active monthly</span>
+      <span class="val">${esc(fmt(totalMonthly))}</span>
+    </div>
+  </div>
+  ${cards || `<div class="card"><p class="empty">No committees yet. Add one to start tracking.</p></div>`}
+  <button class="btn solid" id="addK">Add a committee</button>`;
+}
+
+/* ---------- shared: editable list ---------- */
+function listBlock(kind, items, totalId){
+  const rows = items.map(it => `
+    <div class="list-row" data-row="${esc(it.id)}">
+      <input class="txt" data-lfield="name" value="${esc(it.name)}" placeholder="Name" aria-label="Item name">
+      <input class="money" data-lfield="amount" inputmode="decimal" value="${num(it.amount)}" aria-label="Amount">
+      <button class="del" data-ldel="${esc(it.id)}" aria-label="Delete row">×</button>
+    </div>`).join("");
+  return `
+    <div data-list="${kind}">
+      ${rows || `<p class="empty">Nothing here yet. Add your first line below.</p>`}
+    </div>
+    <button class="btn" data-ladd="${kind}">Add a line</button>
+    <div class="total-row">
+      <span class="lbl">Total</span>
+      <span class="val" id="${totalId}">${esc(fmt(sumList(items)))}</span>
+    </div>`;
+}
+function monthNav(kind, key){
+  return `
+  <div class="monthnav" data-mnav="${kind}">
+    <button data-mstep="-1" aria-label="Previous month">‹</button>
+    <span class="m">${esc(keyLabel(key))}</span>
+    <button data-mstep="1" aria-label="Next month">›</button>
+    <button class="today" data-mnow="1">Today</button>
+  </div>`;
+}
+
+/* ---------- Expenses ---------- */
+function viewExpenses(){
+  const rec = monthRecord(expMonth, true);
+  return `
+  ${monthNav("exp", expMonth)}
+  <div class="card">
+    <p class="eyebrow">Monthly spending</p>
+    <h2>Expenses</h2>
+    <p class="hint">Each month keeps its own list. A new month starts as a copy of your last recorded one — adjust it as the month goes.</p>
+    ${listBlock("expenses", rec.expenses, "expTotal")}
+  </div>`;
+}
+
+/* ---------- Housing ---------- */
+function viewHousing(){
+  const r = state.housing.rent;
+  const start = parseDate(r.startDate);
+  const rec = monthRecord(utilMonth, true);
+  let schedule = `<p class="empty">Set a rent start date to see the escalation schedule.</p>`;
+
+  if(start){
+    const now = new Date();
+    let rows = "";
+    for(let y = 0; y < 5; y++){
+      const from = new Date(start.getFullYear()+y, start.getMonth(), start.getDate());
+      const to   = new Date(start.getFullYear()+y+1, start.getMonth(), start.getDate());
+      const amt  = num(r.base) * Math.pow(1 + num(r.increasePct)/100, y);
+      const isNow = now >= from && now < to;
+      rows += `<tr class="${isNow ? "now" : ""}">
+        <td>${MONTH_NAMES[from.getMonth()].slice(0,3)} ${from.getFullYear()} —
+            ${MONTH_NAMES[to.getMonth()].slice(0,3)} ${to.getFullYear()}</td>
+        <td class="r">${esc(fmt(amt))}</td></tr>`;
+    }
+    schedule = `<table><thead><tr><th>Year</th><th class="r">Monthly rent</th></tr></thead>
+                <tbody>${rows}</tbody></table>`;
+  }
+
+  return `
+  <div class="card">
+    <p class="eyebrow">Fixed agreement</p>
+    <h2>House rent</h2>
+    <p class="hint">One tenancy, not a list. The first partial payment covers a mid-month move-in before full rent begins.</p>
+    <div class="field">
+      <label for="r-base">Base monthly rent</label>
+      <input class="money" id="r-base" data-set="housing.rent.base" inputmode="decimal" value="${num(r.base)}">
+    </div>
+    <div class="field">
+      <label for="r-start">Full rent starts</label>
+      <input class="dt" id="r-start" type="date" data-set="housing.rent.startDate" value="${esc(r.startDate)}">
+    </div>
+    <div class="field">
+      <label for="r-pct">Yearly increase</label>
+      <input class="pct" id="r-pct" data-set="housing.rent.increasePct" inputmode="decimal" value="${num(r.increasePct)}">
+    </div>
+    <div class="field">
+      <label for="r-part">First partial payment</label>
+      <input class="money" id="r-part" data-set="housing.rent.firstPartial" inputmode="decimal" value="${num(r.firstPartial)}">
+    </div>
+    <div class="field">
+      <label for="r-pdate">Paid on</label>
+      <input class="dt" id="r-pdate" type="date" data-set="housing.rent.firstPartialDate" value="${esc(r.firstPartialDate)}">
+    </div>
+    <div class="total-row">
+      <span class="lbl">Rent this month</span>
+      <span class="val" id="rentNow">${esc(fmt(rentForMonth(todayKey())))}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">Compounding ${num(r.increasePct)}% a year</p>
+    <h2>Next five years</h2>
+    <p class="hint">The current year is highlighted.</p>
+    ${schedule}
+  </div>
+
+  ${monthNav("util", utilMonth)}
+  <div class="card">
+    <p class="eyebrow">Billed monthly</p>
+    <h2>Utility &amp; other bills</h2>
+    <p class="hint">Tracked per month, same as expenses.</p>
+    ${listBlock("utilities", rec.utilities, "utilTotal")}
+  </div>`;
+}
+
+/* ---------- Report ---------- */
+function viewReport(){
+  const keys = Object.keys(state.months).sort();
+  const cur = todayKey();
+  let first = state.meta.anchor;
+  if(keys.length && keys[0] < first) first = keys[0];
+  let last = cur;
+  if(keys.length && keys[keys.length-1] > last) last = keys[keys.length-1];
+  if(last < first) last = first;
+
+  const rows = [];
+  let guard = 0;
+  for(let k = first; k <= last && guard < 600; k = shiftKey(k, 1), guard++) rows.push(monthSummary(k, true));
+
+  const tot = rows.reduce((t,r) => ({
+    income:t.income+r.income, expenses:t.expenses+r.expenses, rent:t.rent+r.rent,
+    utilities:t.utilities+r.utilities, kameeti:t.kameeti+r.kameeti, leftover:t.leftover+r.leftover
+  }), {income:0,expenses:0,rent:0,utilities:0,kameeti:0,leftover:0});
+
+  const body = rows.map(r => `
+    <tr class="${r.key === cur ? "now" : ""}">
+      <td>${esc(keyShort(r.key))}${r.estimated ? ` <span class="est">est</span>` : ""}</td>
+      <td class="r">${esc(fmt(r.outflow))}</td>
+      <td class="r ${r.leftover < 0 ? "neg" : ""}">${esc(fmt(r.leftover))}</td>
+    </tr>`).join("");
+
+  const hist = state.kameeti.map(k => {
+    const s = kameetiStats(k);
+    return `
+    <div class="line">
+      <span class="n">${esc(k.name)}<br>
+        <span style="font-size:11px;color:var(--pencil)">
+          since ${s.startKey ? esc(keyShort(s.startKey)) : "—"} · ${s.paid} months paid</span></span>
+      <span class="v">${esc(fmt(s.paidAmount))}</span>
+    </div>`;
+  }).join("");
+  const histTotal = state.kameeti.reduce((t,k) => t + kameetiStats(k).paidAmount, 0);
+
+  return `
+  <div class="card">
+    <p class="eyebrow">${esc(keyShort(first))} — ${esc(keyShort(last))} · ${rows.length} months</p>
+    <h2>Period totals</h2>
+    <div class="line"><span class="n">Net income</span><span class="v">${esc(fmt(tot.income))}</span></div>
+    <div class="line"><span class="n">Expenses</span><span class="v">${esc(fmt(tot.expenses))}</span></div>
+    <div class="line"><span class="n">Rent</span><span class="v">${esc(fmt(tot.rent))}</span></div>
+    <div class="line"><span class="n">Utilities</span><span class="v">${esc(fmt(tot.utilities))}</span></div>
+    <div class="line"><span class="n">Kameeti</span><span class="v">${esc(fmt(tot.kameeti))}</span></div>
+    <div class="total-row">
+      <span class="lbl">Net saved</span>
+      <span class="val ${tot.leftover < 0 ? "neg" : ""}">${esc(fmt(tot.leftover))}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Month by month</h2>
+    <p class="hint">Months marked <span class="est">est</span> have no entries of their own yet, so they carry forward your last recorded month.</p>
+    <table>
+      <thead><tr><th>Month</th><th class="r">Out</th><th class="r">Leftover</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <p class="eyebrow">Since each committee began</p>
+    <h2>Kameeti paid to date</h2>
+    <p class="hint">Counted from each committee's own start date, which may fall before this report's range.</p>
+    ${hist || `<p class="empty">No committees to report.</p>`}
+    <div class="total-row">
+      <span class="lbl">Paid so far</span>
+      <span class="val">${esc(fmt(histTotal))}</span>
+    </div>
+  </div>`;
+}
+
+/* =====================================================================
+   5. EVENT HANDLING  (typing never re-renders the DOM the user is in)
+   ===================================================================== */
+function setPath(path, value){
+  const parts = path.split(".");
+  let obj = state;
+  for(let i = 0; i < parts.length-1; i++) obj = obj[parts[i]];
+  obj[parts[parts.length-1]] = value;
+}
+function findRow(id){
+  for(const key of Object.keys(state.months)){
+    const rec = state.months[key];
+    for(const kind of ["expenses","utilities"]){
+      const i = rec[kind].findIndex(x => x.id === id);
+      if(i > -1) return {rec, kind, index:i, item:rec[kind][i]};
+    }
+  }
+  return null;
+}
+function activeRec(kind){
+  return monthRecord(kind === "expenses" ? expMonth : utilMonth, true);
+}
+function refreshTotal(kind){
+  const rec = activeRec(kind);
+  const el = document.getElementById(kind === "expenses" ? "expTotal" : "utilTotal");
+  if(el) el.textContent = fmt(sumList(rec[kind]));
+}
+
+document.addEventListener("input", ev => {
+  const t = ev.target;
+  if(!(t instanceof HTMLInputElement)) return;
+
+  // simple scalar settings (salary, rent)
+  if(t.dataset.set){
+    const path = t.dataset.set;
+    const isDate = t.type === "date";
+    setPath(path, isDate ? t.value : num(t.value));
+    if(path.startsWith("salary")){
+      const el = document.getElementById("netOut");
+      if(el) el.textContent = fmt(netSalary());
+    }
+    if(path.startsWith("housing")){
+      const el = document.getElementById("rentNow");
+      if(el) el.textContent = fmt(rentForMonth(todayKey()));
+    }
+    scheduleSave();
+    return;
+  }
+
+  // kameeti fields
+  if(t.dataset.kfield){
+    const card = t.closest("[data-kid]");
+    if(!card) return;
+    const k = state.kameeti.find(x => x.id === card.dataset.kid);
+    if(!k) return;
+    const f = t.dataset.kfield;
+    k[f] = (f === "monthly") ? num(t.value) : t.value;
+    scheduleSave();
+    return;
+  }
+
+  // expense / utility rows
+  if(t.dataset.lfield){
+    const row = t.closest("[data-row]");
+    if(!row) return;
+    const found = findRow(row.dataset.row);
+    if(!found) return;
+    if(t.dataset.lfield === "amount"){
+      found.item.amount = num(t.value);
+      refreshTotal(found.kind);
+    }else{
+      found.item.name = t.value;
+    }
+    scheduleSave();
+  }
+});
+
+// tidy the typed value only once the user leaves the input
+document.addEventListener("focusout", ev => {
+  const t = ev.target;
+  if(!(t instanceof HTMLInputElement)) return;
+  if(t.classList.contains("money") || t.classList.contains("pct")){
+    t.value = String(num(t.value));
+  }
+});
+
+document.addEventListener("click", ev => {
+  const t = ev.target.closest("button");
+  if(!t) return;
+
+  if(t.dataset.tab){ go(t.dataset.tab); return; }
+
+  if(t.id === "addK"){
+    const today = new Date();
+    const start = today.toISOString().slice(0,10);
+    const endD = new Date(today.getFullYear()+1, today.getMonth(), today.getDate());
+    state.kameeti.push({ id:uid("k"), name:"New committee", monthly:0,
+      start, end:endD.toISOString().slice(0,10), status:"" });
+    scheduleSave(); render(); return;
+  }
+  if(t.dataset.kdel){
+    const k = state.kameeti.find(x => x.id === t.dataset.kdel);
+    if(k && confirm(`Delete “${k.name}”? This can't be undone.`)){
+      state.kameeti = state.kameeti.filter(x => x.id !== t.dataset.kdel);
+      scheduleSave(); render();
+    }
+    return;
+  }
+  if(t.dataset.ladd){
+    const kind = t.dataset.ladd;
+    activeRec(kind)[kind].push({ id:uid(kind[0]), name:"", amount:0 });
+    scheduleSave(); render();
+    const rows = document.querySelectorAll(`[data-list="${kind}"] [data-row] input.txt`);
+    if(rows.length) rows[rows.length-1].focus();
+    return;
+  }
+  if(t.dataset.ldel){
+    const found = findRow(t.dataset.ldel);
+    if(found){
+      found.rec[found.kind].splice(found.index, 1);
+      scheduleSave(); render();
+    }
+    return;
+  }
+  if(t.dataset.mstep){
+    const nav = t.closest("[data-mnav]");
+    const which = nav.dataset.mnav;
+    const step = parseInt(t.dataset.mstep, 10);
+    if(which === "exp") expMonth = shiftKey(expMonth, step);
+    else utilMonth = shiftKey(utilMonth, step);
+    render(); return;
+  }
+  if(t.dataset.mnow){
+    const which = t.closest("[data-mnav]").dataset.mnav;
+    if(which === "exp") expMonth = todayKey(); else utilMonth = todayKey();
+    render(); return;
+  }
+  if(t.id === "doPush"){
+    sync.gistId = document.getElementById("s-gist").value.trim();
+    sync.token  = document.getElementById("s-token").value.trim();
+    saveSync();
+    if(!syncReady()){ syncStatus("Both the gist ID and a token are needed.", true); return; }
+    syncStatus("Pushing…", false);
+    pushGist(false);
+    return;
+  }
+  if(t.id === "doPull"){
+    sync.gistId = document.getElementById("s-gist").value.trim();
+    sync.token  = document.getElementById("s-token").value.trim();
+    saveSync();
+    if(!syncReady()){ syncStatus("Both the gist ID and a token are needed.", true); return; }
+    syncStatus("Fetching…", false);
+    pullGist(false);
+    return;
+  }
+  if(t.id === "doExport"){ exportJSON(); return; }
+  if(t.id === "doImport"){ document.getElementById("fileIn").click(); return; }
+  if(t.id === "doLink"){ linkFile(); return; }
+  if(t.id === "relock"){ lock(); return; }
+});
+
+/* =====================================================================
+   5b. JSON BACKUP  —  download / restore / optional live file sync
+   ===================================================================== */
+function stateJSON(){ return JSON.stringify(state, null, 2); }
+
+function exportJSON(){
+  const stamp = new Date().toISOString().slice(0,10);
+  state.meta.lastExport = stamp;
+  const blob = new Blob([stateJSON()], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ledger-" + stamp + ".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  scheduleSave();
+  render();
+}
+
+function importJSON(file){
+  const reader = new FileReader();
+  reader.onerror = () => alert("That file couldn't be read. Try downloading it again.");
+  reader.onload = () => {
+    let parsed;
+    try{ parsed = JSON.parse(reader.result); }
+    catch(e){ alert("That isn't valid JSON. Pick a file downloaded from Ledger."); return; }
+    if(!parsed || typeof parsed !== "object" || (!parsed.months && !parsed.salary)){
+      alert("That JSON doesn't look like a Ledger backup."); return;
+    }
+    if(!confirm("Replace everything currently in the app with this file?")) return;
+    state = normalize(parsed);
+    expMonth = utilMonth = todayKey();
+    monthRecord(expMonth, true);
+    scheduleSave();
+    render();
+  };
+  reader.readAsText(file);
+}
+
+/* Desktop Chrome only: hold a real file handle and mirror every save into it. */
+let fileHandle = null;
+async function linkFile(){
+  try{
+    fileHandle = await window.showSaveFilePicker({
+      suggestedName: "ledger.json",
+      types: [{description:"JSON", accept:{"application/json":[".json"]}}]
+    });
+    await writeHandle();
+    alert("Linked. This file now updates as you edit — until you close the tab.");
+  }catch(e){ fileHandle = null; }
+}
+async function writeHandle(){
+  if(!fileHandle) return;
+  try{
+    const w = await fileHandle.createWritable();
+    await w.write(stateJSON());
+    await w.close();
+  }catch(e){ console.warn("Ledger: file sync write failed", e); }
+}
+
+/* =====================================================================
+   5c. GITHUB GIST SYNC
+   Credentials live in their own storage key, never inside the state
+   object — so a downloaded ledger.json never contains your token.
+   ===================================================================== */
+const SYNC_KEY = "ledger-sync-v1";
+const GIST_FILE = "ledger.json";
+let sync = { gistId:"", token:"" };
+let syncBusy = false;
+
+function loadSync(){
+  try{
+    const raw = localStorage.getItem(SYNC_KEY);
+    if(raw) sync = Object.assign(sync, JSON.parse(raw));
+  }catch(e){ /* start unconfigured */ }
+}
+function saveSync(){
+  try{ localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); }
+  catch(e){ alert("Couldn't store the sync settings in this browser."); }
+}
+const syncReady = () => !!(sync.gistId && sync.token);
+
+function syncStatus(msg, isErr){
+  const el = document.getElementById("syncMsg");
+  if(el){
+    el.textContent = msg;
+    el.style.color = isErr ? "var(--stamp)" : "var(--pencil)";
+  }
+}
+
+async function gistRequest(method, body){
+  const res = await fetch("https://api.github.com/gists/" + encodeURIComponent(sync.gistId), {
+    method,
+    headers: {
+      "Authorization": "Bearer " + sync.token,
+      "Accept": "application/vnd.github+json",
+      "Content-Type": "application/json"
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(res.status === 401) throw new Error("Token rejected. Check it hasn't expired.");
+  if(res.status === 404) throw new Error("Gist not found. Check the ID and the token's gist scope.");
+  if(!res.ok) throw new Error("GitHub returned " + res.status + ".");
+  return res.json();
+}
+
+async function pushGist(silent){
+  if(!syncReady() || syncBusy) return;
+  syncBusy = true;
+  try{
+    await gistRequest("PATCH", { files: { [GIST_FILE]: { content: stateJSON() } } });
+    if(!silent) syncStatus("Pushed to GitHub just now.", false);
+    else syncStatus("Synced " + new Date().toLocaleTimeString(), false);
+  }catch(err){
+    syncStatus(err.message, true);
+  }finally{ syncBusy = false; }
+}
+
+async function pullGist(auto){
+  if(!syncReady()) return false;
+  syncBusy = true;
+  try{
+    const data = await gistRequest("GET");
+    const file = data.files && data.files[GIST_FILE];
+    if(!file) throw new Error("No ledger.json inside that gist.");
+    const text = file.truncated && file.raw_url
+      ? await (await fetch(file.raw_url)).text()
+      : file.content;
+    const parsed = JSON.parse(text || "{}");
+    if(!parsed.months && !parsed.salary){
+      if(!auto) syncStatus("The gist is still empty — push first.", true);
+      return false;
+    }
+    const remoteAt = (parsed.meta && parsed.meta.updatedAt) || "";
+    const localAt  = state.meta.updatedAt || "";
+    if(auto && remoteAt <= localAt) { syncStatus("Up to date with GitHub.", false); return false; }
+    if(!auto && !confirm("Replace what's in the app with the copy on GitHub?")) return false;
+    state = normalize(parsed);
+    expMonth = utilMonth = todayKey();
+    monthRecord(expMonth, true);
+    render();
+    syncStatus("Pulled the newer copy from GitHub.", false);
+    return true;
+  }catch(err){
+    syncStatus(err.message, true);
+    return false;
+  }finally{ syncBusy = false; }
+}
+
+/* =====================================================================
+   6. LOCK SCREEN
+   ===================================================================== */
+const lockEl = () => document.getElementById("lock");
+const appEl  = () => document.getElementById("app");
+
+function lock(){
+  lockEl().style.display = "flex";
+  appEl().hidden = true;
+  const pw = document.getElementById("pw");
+  pw.value = ""; document.getElementById("lockErr").textContent = "";
+  setTimeout(() => pw.focus(), 60);
+}
+function unlock(){
+  const pw = document.getElementById("pw");
+  if(pw.value === PASSWORD){
+    lockEl().style.display = "none";
+    appEl().hidden = false;
+    render();
+    if(syncReady()) pullGist(true);
+  }else{
+    document.getElementById("lockErr").textContent = "That passphrase doesn't match. Try again.";
+    pw.select();
+  }
+}
+document.getElementById("fileIn").addEventListener("change", ev => {
+  const f = ev.target.files && ev.target.files[0];
+  if(f) importJSON(f);
+  ev.target.value = "";
+});
+
+document.getElementById("unlock").addEventListener("click", unlock);
+document.getElementById("pw").addEventListener("keydown", e => { if(e.key === "Enter") unlock(); });
+
+/* =====================================================================
+   7. BOOT
+   ===================================================================== */
+(async function boot(){
+  loadSync();
+  let raw = null;
+  try{ raw = await storeRead(STORE_KEY); }catch(e){ raw = null; }
+  if(raw){
+    try{ state = normalize(JSON.parse(raw)); }
+    catch(e){ console.warn("Ledger: stored data unreadable, starting fresh."); state = blankState(); }
+  }else{
+    state = blankState();
+    scheduleSave();
+  }
+  expMonth = utilMonth = todayKey();
+  monthRecord(expMonth, true);
+  markSaving("", false);
+  document.getElementById("pw").focus();
+})();
+
+})();
+</script>
+</body>
+</html>
